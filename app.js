@@ -15,18 +15,17 @@ const previewContainer = document.getElementById('preview-container');
 // OpenCV Ready Callback Handling
 window.onOpenCvLoaded = () => {
     console.log('App: onOpenCvLoaded triggered');
-    const checkRuntime = () => {
-        if (typeof cv !== 'undefined' && cv.runtimeInitialized) {
-            console.log('App: OpenCV.js is fully ready');
-            cvReady = true;
-            loadingScreen.style.display = 'none';
-            startCamera();
-        } else {
-            console.log('App: Waiting for cv.runtimeInitialized...');
-            setTimeout(checkRuntime, 100);
-        }
-    };
-    checkRuntime();
+    
+    // In some builds, cv is already global, in others it's Module
+    if (typeof cv !== 'undefined') {
+        console.log('App: OpenCV.js is fully ready');
+        cvReady = true;
+        loadingScreen.style.display = 'none';
+        startCamera();
+    } else {
+        console.log('App: cv not global yet, waiting...');
+        setTimeout(window.onOpenCvLoaded, 100);
+    }
 };
 
 // If OpenCV.js finished loading before app.js, trigger manually
