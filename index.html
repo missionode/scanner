@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DocScan - High Quality Document Scanner</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Tailwind CSS v4 Browser Build -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- OpenCV.js (Large, load asynchronously) -->
+    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+
+    <style>
+        @theme {
+            --color-primary: #3b82f6;
+            --color-secondary: #10b981;
+        }
+
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border: 2px solid rgba(59, 130, 246, 0.5);
+            box-sizing: border-box;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            z-index: 10;
+        }
+
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.9);
+            background: white;
+        }
+
+        #preview-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #111;
+            z-index: 20;
+            flex-direction: column;
+        }
+
+        #canvas-preview {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            margin: auto;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader mb-4"></div>
+        <p class="text-gray-600 font-medium">Initializing Scanner...</p>
+        <p class="text-xs text-gray-400 mt-2">Loading Computer Vision Library (OpenCV)</p>
+    </div>
+
+    <!-- Main Camera View -->
+    <div id="camera-view" class="camera-container">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="overlay"></div>
+        
+        <div class="controls">
+            <button id="toggle-flash" class="bg-black/50 text-white p-3 rounded-full hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </button>
+            <button id="capture" class="capture-btn"></button>
+            <button id="gallery" class="bg-black/50 text-white p-3 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview & Edit View -->
+    <div id="preview-container">
+        <div class="flex items-center justify-between p-4 bg-black text-white">
+            <button id="back-to-camera" class="p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </button>
+            <h2 class="text-lg font-bold">Review Document</h2>
+            <button id="save-pdf" class="bg-blue-600 px-4 py-2 rounded-lg font-semibold">Save PDF</button>
+        </div>
+        
+        <div class="flex-grow flex items-center justify-center bg-black overflow-hidden p-2">
+            <canvas id="canvas-preview"></canvas>
+        </div>
+
+        <div class="p-4 bg-gray-900 flex justify-around items-center">
+            <button id="filter-none" class="filter-btn active text-white flex flex-col items-center">
+                <div class="w-10 h-10 rounded border-2 border-blue-500 mb-1 bg-gradient-to-tr from-blue-400 to-green-400"></div>
+                <span class="text-xs">Original</span>
+            </button>
+            <button id="filter-enhance" class="filter-btn text-gray-400 flex flex-col items-center">
+                <div class="w-10 h-10 rounded border mb-1 bg-gradient-to-tr from-yellow-200 to-white"></div>
+                <span class="text-xs">Magic</span>
+            </button>
+            <button id="filter-gray" class="filter-btn text-gray-400 flex flex-col items-center">
+                <div class="w-10 h-10 rounded border mb-1 bg-gray-400"></div>
+                <span class="text-xs">Grayscale</span>
+            </button>
+            <button id="filter-bw" class="filter-btn text-gray-400 flex flex-col items-center">
+                <div class="w-10 h-10 rounded border mb-1 bg-white flex items-center justify-center"><span class="text-black font-bold">B&W</span></div>
+                <span class="text-xs">B&W</span>
+            </button>
+        </div>
+    </div>
+
+    <canvas id="canvas-processing" class="hidden"></canvas>
+    <input type="file" id="file-input" class="hidden" accept="image/*">
+
+    <script>
+        // Callback for OpenCV.js
+        function onOpenCvReady() {
+            console.log('OpenCV.js script loaded');
+            if (window.onOpenCvLoaded) {
+                window.onOpenCvLoaded();
+            } else {
+                window.cvReadyPending = true;
+            }
+        }
+    </script>
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Error: ', err));
+            });
+        }
+    </script>
+</body>
+</html>

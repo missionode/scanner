@@ -1,0 +1,25 @@
+/* Custom styles for DocScan */
+
+:root {
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+}
+
+.filter-btn.active div {
+    box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Ensure the video feed covers the entire screen on mobile */
+#video {
+    object-fit: cover;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Prevent accidental refreshes when pulling down on mobile */
+body {
+    overscroll-behavior-y: contain;
+}
+
+.controls {
+    padding-bottom: calc(2rem + var(--safe-area-inset-bottom));
+}
