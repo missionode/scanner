@@ -14,14 +14,16 @@ const previewContainer = document.getElementById('preview-container');
 
 // OpenCV Ready Callback Handling
 window.onOpenCvLoaded = () => {
+    console.log('App: onOpenCvLoaded triggered');
     const checkRuntime = () => {
-        if (cv.runtimeInitialized) {
-            console.log('OpenCV.js is ready');
+        if (typeof cv !== 'undefined' && cv.runtimeInitialized) {
+            console.log('App: OpenCV.js is fully ready');
             cvReady = true;
             loadingScreen.style.display = 'none';
             startCamera();
         } else {
-            setTimeout(checkRuntime, 50);
+            console.log('App: Waiting for cv.runtimeInitialized...');
+            setTimeout(checkRuntime, 100);
         }
     };
     checkRuntime();

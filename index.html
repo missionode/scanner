@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DocScan - High Quality Document Scanner</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3b82f6">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -14,13 +15,37 @@
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- OpenCV.js (Large, load asynchronously) -->
-    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <!-- OpenCV.js (Standard Module initialization for reliability) -->
+    <script>
+        console.log('Index: Initializing Module object');
+        var Module = {
+            onRuntimeInitialized: function() {
+                console.log('Index: OpenCV.js Runtime Initialized (WASM Ready)');
+                if (window.onOpenCvLoaded) {
+                    window.onOpenCvLoaded();
+                } else {
+                    console.log('Index: app.js not loaded yet, setting cvReadyPending');
+                    window.cvReadyPending = true;
+                }
+            },
+            print: function(text) { console.log('OpenCV Output: ' + text); },
+            printErr: function(text) { console.error('OpenCV Error: ' + text); }
+        };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0/dist/opencv.js" 
+            type="text/javascript"
+            onload="console.log('Index: OpenCV.js Script Tag Loaded');"
+            onerror="console.error('Index: OpenCV.js Script Tag Failed to Load');"></script>
 
     <style>
+        /* Custom styles for DocScan */
         @theme {
             --color-primary: #3b82f6;
             --color-secondary: #10b981;
+        }
+
+        :root {
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
         }
 
         body {
@@ -65,6 +90,7 @@
             align-items: center;
             gap: 2rem;
             z-index: 10;
+            padding-bottom: calc(2rem + var(--safe-area-inset-bottom));
         }
 
         .capture-btn {
@@ -127,6 +153,10 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+        }
+
+        .filter-btn.active div {
+            box-shadow: 0 0 0 2px #3b82f6;
         }
     </style>
 </head>
@@ -198,17 +228,6 @@
     <canvas id="canvas-processing" class="hidden"></canvas>
     <input type="file" id="file-input" class="hidden" accept="image/*">
 
-    <script>
-        // Callback for OpenCV.js
-        function onOpenCvReady() {
-            console.log('OpenCV.js script loaded');
-            if (window.onOpenCvLoaded) {
-                window.onOpenCvLoaded();
-            } else {
-                window.cvReadyPending = true;
-            }
-        }
-    </script>
     <script src="app.js"></script>
     <script>
         // Register Service Worker for PWA
