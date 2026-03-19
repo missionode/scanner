@@ -1,4 +1,4 @@
-const CACHE_NAME = 'docscan-v2';
+const CACHE_NAME = 'docscan-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -6,14 +6,13 @@ const ASSETS = [
   'manifest.json',
   'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0/dist/opencv.js'
+  'https://docs.opencv.org/4.5.5/opencv.js'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('SW: Pre-caching assets');
-      // Use individual additions so one failure doesn't break everything
       return Promise.allSettled(
         ASSETS.map(url => {
           return cache.add(url).catch(err => console.error(`SW: Failed to cache ${url}`, err));

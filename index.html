@@ -15,7 +15,7 @@
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- OpenCV.js (Standard Module initialization for reliability) -->
+    <!-- OpenCV.js (Official Doc Server for better compatibility) -->
     <script>
         console.log('Index: Initializing Module object');
         var Module = {
@@ -27,12 +27,21 @@
                     console.log('Index: app.js not loaded yet, setting cvReadyPending');
                     window.cvReadyPending = true;
                 }
-            },
-            print: function(text) { console.log('OpenCV Output: ' + text); },
-            printErr: function(text) { console.error('OpenCV Error: ' + text); }
+            }
         };
+
+        // Add a timeout warning after 30 seconds
+        setTimeout(() => {
+            const screen = document.getElementById('loading-screen');
+            if (screen && screen.style.display !== 'none') {
+                const msg = document.createElement('p');
+                msg.className = 'text-red-500 text-xs mt-4 px-8 text-center';
+                msg.innerHTML = 'Still loading? The library is ~10MB. <br>Please check your connection or try refreshing.';
+                screen.appendChild(msg);
+            }
+        }, 30000);
     </script>
-    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0/dist/opencv.js" 
+    <script async src="https://docs.opencv.org/4.5.5/opencv.js" 
             type="text/javascript"
             onload="console.log('Index: OpenCV.js Script Tag Loaded');"
             onerror="console.error('Index: OpenCV.js Script Tag Failed to Load');"></script>
